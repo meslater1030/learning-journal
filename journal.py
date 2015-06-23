@@ -32,7 +32,7 @@ DATABASE_URL = os.environ.get(
 
 
 def init_db():
-    engine = create_engine('DATABASE_URL')
+    engine = create_engine(DATABASE_URL)
     Base.metadata.create_all(engine)
 
 
