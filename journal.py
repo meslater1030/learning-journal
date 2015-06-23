@@ -6,6 +6,8 @@ from pyramid.view import view_config
 from waitress import serve
 import sqlalchemy as sa
 from sqlalchemy.ext.declarative import declarative_base
+import datetime
+from sqlalchemy import create_engine
 
 Base = declarative_base()
 
@@ -17,11 +19,17 @@ class Entry(Base):
     title = sa.Column(sa.String(128))
     text = sa.Column(sa.String, nullable=False)
     created = sa.Column(sa.DateTime, nullable=False,
-                        default=datetime.date.utcnow)
+                        default=datetime.datetime.utcnow)
 
     def __repr__(self):
         return "<Entry(title='%s', created='%s')>" % (
             self.title, self.created)
+
+
+def init_db():
+    engine = create_engine(
+        'postgresql://meslater@localhost:5432/learning-journal')
+    Base.metadata.create_all(engine)
 
 
 @view_config(route_name='home', renderer='string')
