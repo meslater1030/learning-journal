@@ -27,7 +27,8 @@ class Entry(Base):
 
 DATABASE_URL = os.environ.get(
     'DATABASE_URL',
-    'postgresql://meslater@localhost:5432/learning-journal')
+    'postgresql://meslater@localhost:5432/learning-journal'
+)
 
 
 def init_db():
