@@ -25,10 +25,13 @@ class Entry(Base):
         return "<Entry(title='%s', created='%s')>" % (
             self.title, self.created)
 
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'postgresql://meslater@localhost:5432/learning-journal')
+
 
 def init_db():
-    engine = create_engine(
-        'postgresql://meslater@localhost:5432/learning-journal')
+    engine = create_engine('DATABASE_URL')
     Base.metadata.create_all(engine)
 
 
