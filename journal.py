@@ -15,9 +15,9 @@ Base = declarative_base()
 class Entry(Base):
     __tablename__ = 'entries'
 
-    id = sa.Column(sa.Integer, primary_key=True)
-    title = sa.Column(sa.String(128))
-    text = sa.Column(sa.String, nullable=False)
+    id = sa.Column(sa.Integer, primary_key=True, autoincrement=True)
+    title = sa.Column(sa.Unicode(128), nullable=False)
+    text = sa.Column(sa.UnicodeText, nullable=False)
     created = sa.Column(sa.DateTime, nullable=False,
                         default=datetime.datetime.utcnow)
 
