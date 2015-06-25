@@ -53,17 +53,16 @@ def init_db():
     Base.metadata.create_all(engine)
 
 
-@view_config(route_name='home', renderer='templates/test.jinja2')
-def home(request):
-    # this sets a breakpoint.  Our shell will pop into a pbd prompt
-    # import pdb; pdb.set_trace()
-    return {'one': 'two', 'stuff': ['a', 'b', 'c']}
+@view_config(route_name='home', renderer='templates/list.jinja2')
+def list_view(request):
+    entries = Entry.all()
+    return {'entries': entries}
 
 
 @view_config(route_name='other', renderer='string')
 def other(request):
     # import pdb; pdb.set_trace()
-    return request.matchdict
+    return "Hello World"
 
 
 def main():
@@ -82,7 +81,7 @@ def main():
     config.include('pyramid_tm')
     config.include('pyramid_jinja2')
     config.add_route('home', '/')
-    # config.add_route('other', '/other/{special_val}')
+    config.add_route('other', '/other/{special_val}')
     config.scan()
     app = config.make_wsgi_app()
     return app
