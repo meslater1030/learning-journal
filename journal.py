@@ -61,7 +61,6 @@ def list_view(request):
 
 @view_config(route_name='other', renderer='string')
 def other(request):
-    # import pdb; pdb.set_trace()
     return "Hello World"
 
 
