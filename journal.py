@@ -17,6 +17,7 @@ from pyramid.authorization import ACLAuthorizationPolicy
 from cryptacular.bcrypt import BCRYPTPasswordManager
 from pyramid.security import remember, forget
 
+HERE = os.path.dirname(os.path.abspath(__file__))
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
@@ -70,6 +71,18 @@ def db_exception(context, request):
     return response
 
 
+def do_login(request):
+    username = request.params.get('username', None)
+    password = request.params.get('password', None)
+    if not (username and password):
+        raise ValueError('both username and password are required')
+    settings = request.registry.settings
+    manager = BCRYPTPasswordManager()
+    if username == settings.get('auth.username', ''):
+        hashed = settings.get('auth.password', '')
+        return manager.check(hashed, password)
+
+
 @view_config(route_name='login', renderer="templates/login.jinja2")
 def login(request):
     """authenticate a user by username/password"""
@@ -87,7 +100,7 @@ def login(request):
             headers = remember(request, username)
             return HTTPFound(request.route_url('home'), headers=headers)
 
-        return {'error': error, 'username': username}
+    return {'error': error, 'username': username}
 
 
 @view_config(route_name='logout')
@@ -141,6 +154,7 @@ def main():
         )
     config.include('pyramid_tm')
     config.include('pyramid_jinja2')
+    config.add_static_view('static', os.path.join(HERE, 'static'))
     config.add_route('home', '/')
     config.add_route('add', '/add')
     config.add_route('other', '/other/{special_val}')
@@ -154,15 +168,3 @@ if __name__ == '__main__':
     app = main()
     port = os.environ.get('PORT', 5000)
     serve(app, host='0.0.0.0', port=port)
-
-
-def do_login(request):
-    username = request.params.get('username', None)
-    password = request.params.get('password', None)
-    if not (username and password):
-        raise ValueError('both username and password are required')
-    settings = request.registry.settings
-    manager = BCRYPTPasswordManager()
-    if username == settings.get('auth.username', ''):
-        hashed = settings.get('auth.password', '')
-        return manager.check(hashed, password)
