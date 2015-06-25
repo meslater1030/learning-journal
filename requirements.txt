@@ -24,12 +24,14 @@ Record==2.13.0
 RestrictedPython==3.6.0
 SQLAlchemy==1.0.5
 WebOb==1.4.1
+WebTest==2.0.18
 Werkzeug==0.10.4
 ZConfig==2.9.1
 ZODB3==3.10.5
 Zope2==2.13.22
 ZopeUndo==2.12.0
 argparse==1.2.1
+beautifulsoup4==4.3.2
 docutils==0.7
 initgroups==2.13.0
 itsdangerous==0.24
@@ -38,9 +40,11 @@ psycopg2==2.6.1
 py==1.4.29
 pyramid==1.5.7
 pyramid-jinja2==2.5
+pyramid-tm==0.12
 pytest==2.7.2
 pytz==2013b
 repoze.lru==0.6
+six==1.9.0
 tempstorage==2.12.2
 transaction==1.1.1
 translationstring==1.3
