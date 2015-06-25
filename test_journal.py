@@ -18,6 +18,43 @@ os.environ['TESTING'] = "True"
 import journal
 
 
+INPUT_BTN = '<input type="submit" value="Share" name="Share"/>'
+
+
+def login_helper(username, password, app):
+    """encapsulate app login for reuse in tests
+
+    Accept all status codes so that we can make assertions in tests
+    """
+    login_data = {'username': username, 'password': password}
+    return app.post('/login', params=login_data, status='*')
+
+
+def test_start_as_anonymous(app):
+    response = app.get('/', status=200)
+    actual = response.body
+    assert INPUT_BTN not in actual
+
+
+def test_login_success(app):
+    username, password = ('admin', 'secret')
+    redirect = login_helper(username, password, app)
+    assert redirect.status_code == 302
+    response = redirect.follow()
+    assert response.status_code == 200
+    actual = response.body
+    assert INPUT_BTN in actual
+
+
+def test_login_fails(app):
+    username, password = ('admin', 'wrong')
+    response = login_helper(username, password, app)
+    assert response.status_code == 200
+    actual = response.body
+    assert "Login Failed" in actual
+    assert INPUT_BTN not in actual
+
+
 @pytest.fixture(scope='session')
 def connection(request):
     engine = create_engine(TEST_DATABASE_URL)
@@ -94,15 +131,17 @@ def test_write_entry(db_session):
     entry = journal.Entry.write(**kwargs)
     # the entry we get back ought to be an instance of Entry
     assert isinstance(entry, journal.Entry)
-    # id and created are generated automatically, but only on writing
-    # to the database
+    # id and created are generated automatically, but only on writing to
+    # the database
     auto_fields = ['id', 'created']
     for field in auto_fields:
         assert getattr(entry, field, None) is None
+
     # flush the session to "write" the data to the database
     db_session.flush()
     # now, we should have one entry:
     assert db_session.query(journal.Entry).count() == 1
+
     for field in kwargs:
         if field != 'session':
             assert getattr(entry, field, '') == kwargs[field]
@@ -113,13 +152,6 @@ def test_write_entry(db_session):
 
 def test_entry_no_title_fails(db_session):
     bad_data = {'text': 'test text'}
-    journal.Entry.write(session=db_session, **bad_data)
-    with pytest.raises(IntegrityError):
-        db_session.flush()
-
-
-def test_entry_no_text_fails(db_session):
-    bad_data = {'title': 'test title'}
     journal.Entry.write(session=db_session, **bad_data)
     with pytest.raises(IntegrityError):
         db_session.flush()
@@ -148,7 +180,7 @@ def test_read_entries_one(db_session):
 
 
 @pytest.fixture()
-def app():
+def app(db_session):
     from journal import main
     from webtest import TestApp
     app = main()
@@ -198,3 +230,13 @@ def test_post_to_add_view(app):
 def test_add_no_params(app):
     response = app.post('/add', status=500)
     assert 'IntegrityError' in response.body
+
+
+def test_logout(app):
+    # re-use existing code to ensure we are logged in when we begin
+    test_login_success(app)
+    redirect = app.get('/logout', status="3*")
+    response = redirect.follow()
+    assert response.status_code == 200
+    actual = response.body
+    assert INPUT_BTN not in actual
