@@ -120,8 +120,6 @@ def test_login_success(app):
     assert redirect.status_code == 302
     response = redirect.follow()
     assert response.status_code == 200
-    actual = response.body
-    assert INPUT_BTN in actual
 
 
 def test_login_fails(app):
@@ -139,8 +137,6 @@ def test_logout(app):
     redirect = app.get('/logout', status="3*")
     response = redirect.follow()
     assert response.status_code == 200
-    actual = response.body
-    assert INPUT_BTN not in actual
 
 
 def test_post_to_add_view(app):
@@ -159,6 +155,15 @@ def test_start_as_anonymous(app):
     response = app.get('/', status=200)
     actual = response.body
     assert INPUT_BTN not in actual
+
+# I made this!
+
+
+def test_write_exists(app):
+    test_login_success(app)
+    response = app.get('/write')
+    actual = response.body
+    assert INPUT_BTN in actual
 
 # all the auth_required tests
 
