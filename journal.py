@@ -1,27 +1,33 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-from sqlalchemy.orm import scoped_session, sessionmaker
-from zope.sqlalchemy import ZopeTransactionExtension
-import os
-from pyramid.config import Configurator
-from pyramid.view import view_config
-from waitress import serve
-import sqlalchemy as sa
-from sqlalchemy.ext.declarative import declarative_base
+from cryptacular.bcrypt import BCRYPTPasswordManager
 import datetime
-from sqlalchemy import create_engine
-from pyramid.httpexceptions import HTTPFound
-from sqlalchemy.exc import DBAPIError
+import os
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
-from cryptacular.bcrypt import BCRYPTPasswordManager
+from pyramid.config import Configurator
+from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember, forget
+from pyramid.view import view_config
+import sqlalchemy as sa
+from sqlalchemy import create_engine
+from sqlalchemy.exc import DBAPIError
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import scoped_session, sessionmaker
+from waitress import serve
+from zope.sqlalchemy import ZopeTransactionExtension
 
+# all the global variables
 HERE = os.path.dirname(os.path.abspath(__file__))
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
+DATABASE_URL = os.environ.get(
+    'DATABASE_URL',
+    'postgresql://meslater@localhost:5432/learning-journal'
+)
 
 
+# all the classes
 class Entry(Base):
     __tablename__ = 'entries'
 
@@ -49,10 +55,7 @@ class Entry(Base):
         return "<Entry(title='%s', created='%s')>" % (
             self.title, self.created)
 
-DATABASE_URL = os.environ.get(
-    'DATABASE_URL',
-    'postgresql://meslater@localhost:5432/learning-journal'
-)
+# all the views
 
 
 @view_config(route_name='add', request_method='POST')
@@ -71,16 +74,10 @@ def db_exception(context, request):
     return response
 
 
-def do_login(request):
-    username = request.params.get('username', None)
-    password = request.params.get('password', None)
-    if not (username and password):
-        raise ValueError('both username and password are required')
-    settings = request.registry.settings
-    manager = BCRYPTPasswordManager()
-    if username == settings.get('auth.username', ''):
-        hashed = settings.get('auth.password', '')
-        return manager.check(hashed, password)
+@view_config(route_name='home', renderer='templates/list.jinja2')
+def list_view(request):
+    entries = Entry.all()
+    return {'entries': entries}
 
 
 @view_config(route_name='login', renderer="templates/login.jinja2")
@@ -108,21 +105,24 @@ def logout(request):
     headers = forget(request)
     return HTTPFound(request.route_url('home'), headers=headers)
 
+# all the functions
+
+
+def do_login(request):
+    username = request.params.get('username', None)
+    password = request.params.get('password', None)
+    if not (username and password):
+        raise ValueError('both username and password are required')
+    settings = request.registry.settings
+    manager = BCRYPTPasswordManager()
+    if username == settings.get('auth.username', ''):
+        hashed = settings.get('auth.password', '')
+        return manager.check(hashed, password)
+
 
 def init_db():
     engine = create_engine(DATABASE_URL)
     Base.metadata.create_all(engine)
-
-
-@view_config(route_name='home', renderer='templates/list.jinja2')
-def list_view(request):
-    entries = Entry.all()
-    return {'entries': entries}
-
-
-@view_config(route_name='other', renderer='string')
-def other(request):
-    return "Hello World"
 
 
 def main():
@@ -157,7 +157,6 @@ def main():
     config.add_static_view('static', os.path.join(HERE, 'static'))
     config.add_route('home', '/')
     config.add_route('add', '/add')
-    config.add_route('other', '/other/{special_val}')
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
     config.scan()
