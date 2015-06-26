@@ -1,24 +1,108 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from cryptacular.bcrypt import BCRYPTPasswordManager
+import journal
 import os
+from pyramid import testing
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
-from pyramid import testing
-from cryptacular.bcrypt import BCRYPTPasswordManager
 
-
+# all the global variables
 TEST_DATABASE_URL = os.environ.get(
     'DATABASE_URL',
     'postgresql://meslater:@localhost:5432/test-learning-journal')
-
 os.environ['DATABASE_URL'] = TEST_DATABASE_URL
 os.environ['TESTING'] = "True"
-
-import journal
-
-
 INPUT_BTN = '<input type="submit" value="Share" name="Share"/>'
+
+
+# all the fixtures
+
+
+@pytest.fixture()
+def app(db_session):
+    from journal import main
+    from webtest import TestApp
+    app = main()
+    return TestApp(app)
+
+
+@pytest.fixture(scope='function')
+def auth_req(request):
+    manager = BCRYPTPasswordManager()
+    settings = {
+        'auth.username': 'admin',
+        'auth.password': manager.encode('secret'),
+    }
+    testing.setUp(settings=settings)
+    req = testing.DummyRequest()
+
+    def cleanup():
+        testing.tearDown()
+
+    request.addfinalizer(cleanup)
+
+    return req
+
+
+@pytest.fixture(scope='session')
+def connection(request):
+    engine = create_engine(TEST_DATABASE_URL)
+    journal.Base.metadata.create_all(engine)
+    connection = engine.connect()
+    journal.DBSession.registry.clear()
+    journal.DBSession.configure(bind=connection)
+    journal.Base.metadata.bind = engine
+    request.addfinalizer(journal.Base.metadata.drop_all)
+    return connection
+
+
+@pytest.fixture()
+def db_session(request, connection):
+    from transaction import abort
+    trans = connection.begin()
+    request.addfinalizer(trans.rollback)
+    request.addfinalizer(abort)
+
+    from journal import DBSession
+    return DBSession
+
+
+@pytest.fixture()
+def entry(db_session):
+    entry = journal.Entry.write(
+        title='Test Title',
+        text='Test Entry Text',
+        session=db_session
+    )
+    db_session.flush()
+    return entry
+
+
+# all the tests using the app fixture
+
+
+def test_add_no_params(app):
+    response = app.post('/add', status=500)
+    assert 'IntegrityError' in response.body
+
+
+def test_empty_listing(app):
+    response = app.get('/')
+    assert response.status_code == 200
+    actual = response.body
+    expected = 'No entries here so far'
+    assert expected in actual
+
+
+def test_listing(app, entry):
+    response = app.get('/')
+    assert response.status_code == 200
+    actual = response.body
+    for field in ['title', 'text']:
+        expected = getattr(entry, field, 'absent')
+        assert expected in actual
 
 
 def login_helper(username, password, app):
@@ -28,12 +112,6 @@ def login_helper(username, password, app):
     """
     login_data = {'username': username, 'password': password}
     return app.post('/login', params=login_data, status='*')
-
-
-def test_start_as_anonymous(app):
-    response = app.get('/', status=200)
-    actual = response.body
-    assert INPUT_BTN not in actual
 
 
 def test_login_success(app):
@@ -55,51 +133,45 @@ def test_login_fails(app):
     assert INPUT_BTN not in actual
 
 
-@pytest.fixture(scope='session')
-def connection(request):
-    engine = create_engine(TEST_DATABASE_URL)
-    journal.Base.metadata.create_all(engine)
-    connection = engine.connect()
-    journal.DBSession.registry.clear()
-    journal.DBSession.configure(bind=connection)
-    journal.Base.metadata.bind = engine
-    request.addfinalizer(journal.Base.metadata.drop_all)
-    return connection
+def test_logout(app):
+    # re-use existing code to ensure we are logged in when we begin
+    test_login_success(app)
+    redirect = app.get('/logout', status="3*")
+    response = redirect.follow()
+    assert response.status_code == 200
+    actual = response.body
+    assert INPUT_BTN not in actual
 
 
-@pytest.fixture(scope='function')
-def auth_req(request):
-    manager = BCRYPTPasswordManager()
-    settings = {
-        'auth.username': 'admin',
-        'auth.password': manager.encode('secret'),
+def test_post_to_add_view(app):
+    entry_data = {
+        'title': 'Hello there',
+        'text': 'This is a post',
     }
-    testing.setUp(settings=settings)
-    req = testing.DummyRequest()
-
-    def cleanup():
-        testing.tearDown()
-
-    request.addfinalizer(cleanup)
-
-    return req
+    response = app.post('/add', params=entry_data, status='3*')
+    redirected = response.follow()
+    actual = redirected.body
+    for expected in entry_data.values():
+        assert expected in actual
 
 
-def test_do_login_success(auth_req):
-    from journal import do_login
-    auth_req.params = {'username': 'admin', 'password': 'secret'}
-    assert do_login(auth_req)
+def test_start_as_anonymous(app):
+    response = app.get('/', status=200)
+    actual = response.body
+    assert INPUT_BTN not in actual
 
-
-def test_do_login_bad_pass(auth_req):
-    from journal import do_login
-    auth_req.params = {'username': 'admin', 'password': 'wrong'}
-    assert not do_login(auth_req)
+# all the auth_required tests
 
 
 def test_do_login_bad_user(auth_req):
     from journal import do_login
     auth_req.params = {'username': 'bad', 'password': 'secret'}
+    assert not do_login(auth_req)
+
+
+def test_do_login_bad_pass(auth_req):
+    from journal import do_login
+    auth_req.params = {'username': 'admin', 'password': 'wrong'}
     assert not do_login(auth_req)
 
 
@@ -111,43 +183,13 @@ def test_do_login_missing_params(auth_req):
             do_login(auth_req)
 
 
-@pytest.fixture()
-def db_session(request, connection):
-    from transaction import abort
-    trans = connection.begin()
-    request.addfinalizer(trans.rollback)
-    request.addfinalizer(abort)
-
-    from journal import DBSession
-    return DBSession
+def test_do_login_success(auth_req):
+    from journal import do_login
+    auth_req.params = {'username': 'admin', 'password': 'secret'}
+    assert do_login(auth_req)
 
 
-def test_write_entry(db_session):
-    kwargs = {'title': "Test Title", 'text': "Test entry text"}
-    kwargs['session'] = db_session
-    # first, assert that there are no entries in the database:
-    assert db_session.query(journal.Entry).count() == 0
-    # now, create an entry using the 'write' class method
-    entry = journal.Entry.write(**kwargs)
-    # the entry we get back ought to be an instance of Entry
-    assert isinstance(entry, journal.Entry)
-    # id and created are generated automatically, but only on writing to
-    # the database
-    auto_fields = ['id', 'created']
-    for field in auto_fields:
-        assert getattr(entry, field, None) is None
-
-    # flush the session to "write" the data to the database
-    db_session.flush()
-    # now, we should have one entry:
-    assert db_session.query(journal.Entry).count() == 1
-
-    for field in kwargs:
-        if field != 'session':
-            assert getattr(entry, field, '') == kwargs[field]
-    # id and created should be set automatically upon writing to db:
-    for auto in ['id', 'created']:
-        assert getattr(entry, auto, None) is not None
+# all db_session tests
 
 
 def test_entry_no_title_fails(db_session):
@@ -179,64 +221,29 @@ def test_read_entries_one(db_session):
         assert isinstance(entry, journal.Entry)
 
 
-@pytest.fixture()
-def app(db_session):
-    from journal import main
-    from webtest import TestApp
-    app = main()
-    return TestApp(app)
+def test_write_entry(db_session):
+    kwargs = {'title': "Test Title", 'text': "Test entry text"}
+    kwargs['session'] = db_session
+    # first, assert that there are no entries in the database:
+    assert db_session.query(journal.Entry).count() == 0
+    # now, create an entry using the 'write' class method
+    entry = journal.Entry.write(**kwargs)
+    # the entry we get back ought to be an instance of Entry
+    assert isinstance(entry, journal.Entry)
+    # id and created are generated automatically, but only on writing to
+    # the database
+    auto_fields = ['id', 'created']
+    for field in auto_fields:
+        assert getattr(entry, field, None) is None
 
-
-def test_empty_listing(app):
-    response = app.get('/')
-    assert response.status_code == 200
-    actual = response.body
-    expected = 'No entries here so far'
-    assert expected in actual
-
-
-@pytest.fixture()
-def entry(db_session):
-    entry = journal.Entry.write(
-        title='Test Title',
-        text='Test Entry Text',
-        session=db_session
-    )
+    # flush the session to "write" the data to the database
     db_session.flush()
-    return entry
+    # now, we should have one entry:
+    assert db_session.query(journal.Entry).count() == 1
 
-
-def test_listing(app, entry):
-    response = app.get('/')
-    assert response.status_code == 200
-    actual = response.body
-    for field in ['title', 'text']:
-        expected = getattr(entry, field, 'absent')
-        assert expected in actual
-
-
-def test_post_to_add_view(app):
-    entry_data = {
-        'title': 'Hello there',
-        'text': 'This is a post',
-    }
-    response = app.post('/add', params=entry_data, status='3*')
-    redirected = response.follow()
-    actual = redirected.body
-    for expected in entry_data.values():
-        assert expected in actual
-
-
-def test_add_no_params(app):
-    response = app.post('/add', status=500)
-    assert 'IntegrityError' in response.body
-
-
-def test_logout(app):
-    # re-use existing code to ensure we are logged in when we begin
-    test_login_success(app)
-    redirect = app.get('/logout', status="3*")
-    response = redirect.follow()
-    assert response.status_code == 200
-    actual = response.body
-    assert INPUT_BTN not in actual
+    for field in kwargs:
+        if field != 'session':
+            assert getattr(entry, field, '') == kwargs[field]
+    # id and created should be set automatically upon writing to db:
+    for auto in ['id', 'created']:
+        assert getattr(entry, auto, None) is not None
