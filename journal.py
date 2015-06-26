@@ -100,17 +100,17 @@ def login(request):
     return {'error': error, 'username': username}
 
 
+@view_config(route_name='logout')
+def logout(request):
+    headers = forget(request)
+    return HTTPFound(request.route_url('home'), headers=headers)
+
+
 @view_config(route_name='write', renderer="templates/write.jinja2")
 def write(request):
     """authenticate a user by username/password"""
     username = request.params.get('username', '')
     return {'username': username}
-
-
-@view_config(route_name='logout')
-def logout(request):
-    headers = forget(request)
-    return HTTPFound(request.route_url('home'), headers=headers)
 
 # all the functions
 
