@@ -13,19 +13,15 @@
         <header>
         <h1>Megan's Python Journal</h1>
         <p>Things I've learned</p>
-            <aside id="user-controls">
+            <nav id="user-controls">
                 <ul>
+                    <li><a href="/">Home</a></li>
                 {% if not request.authenticated_userid %}
                     <li><a href="{{ request.route_url('login') }}">Log In</a></li>
                 {% else %}
                     <li><a href="{{ request.route_url('logout') }}">Log Out</a></li>
                     <li><a href="{{ request.route_url('write') }}">Write an Entry</a></li>
                 {% endif %}
-                </ul>
-            </aside>
-            <nav>
-                <ul>
-                    <li><a href="/">Home</a></li>
                 </ul>
             </nav>
         </header>
