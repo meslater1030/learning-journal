@@ -100,6 +100,13 @@ def login(request):
     return {'error': error, 'username': username}
 
 
+@view_config(route_name='write', renderer="templates/write.jinja2")
+def write(request):
+    """authenticate a user by username/password"""
+    username = request.params.get('username', '')
+    return {'username': username}
+
+
 @view_config(route_name='logout')
 def logout(request):
     headers = forget(request)
@@ -159,6 +166,7 @@ def main():
     config.add_route('add', '/add')
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
+    config.add_route('write', '/write')
     config.scan()
     app = config.make_wsgi_app()
     return app
