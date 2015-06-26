@@ -1,54 +1,97 @@
-body{
-    color:#111;
-    padding:0;
-    margin:0}
-header{
-    margin:0;
-    padding:0 0.75em;
-    width:100%;}
-header:after{
-    content:"";
-    display:table;
-    clear:both;}
-header a{
-    text-decoration:none}
-header aside{
-    float:right;
-    text-align:right;
-    padding-right:0.75em}
-header ul{
-    list-style:none;
-    list-style-type:none;
-    display:inline-block}
-header ul li{
-    margin:0 0.25em 0 0}
-header ul li a{
-    padding:0;
-    display:inline-block}
-main{padding:0 0.75em 1em}
-main:after{
-    content:"";
-    display:table;
-    clear:both}
-main article{
-    margin-bottom:1em;
-    padding-left:0.5em}
-main article h3{margin-top:0}
-main article .entry_body{
-    margin:0.5em}
-main aside{float:right}
-main aside .field{
-    margin-bottom:1em}
-main aside .field input,
-main aside .field label,
-main aside .field textarea{
-    vertical-align:top}
-main aside .field label{
-    display:inline-block;
-    width:15%;
-    padding-top:2px}
-main aside .field input,
-main aside .field textarea{
-    width:83%}
-main aside .control_row input{
-    margin-left:16%}
+body {
+  font-family: sans-serif;
+}
+
+h1 {
+  text-align: center;
+  font-family: 'Montserrat', sans-serif;
+}
+
+h2 {
+   font-family: 'Montserrat', sans-serif;
+   margin: 5px;
+}
+
+.dateline {
+    font-size: 0.9em;
+}
+
+header p {
+  text-align: center;
+}
+
+.entry p {
+    margin: 5px;
+}
+
+.entry_body {
+    padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 30px;
+}
+
+li {
+  display: inline;
+  padding:  0em 2em;
+  list-style-type: none;
+}
+
+ul {
+  display: inline;
+  text-align: center;
+  padding: 0px;
+  list-style-type: none;
+}
+
+a {
+  text-decoration: none;
+  color:  lightblue
+}
+
+a:visited {
+  color: lightgreen;
+}
+
+a:hover {
+  color: black;
+}
+
+input {
+  float: right;
+  clear: both;
+  width: 90%
+}
+
+label {
+  float: left;
+  clear: both;
+  width: 5%
+}
+
+textarea {
+  float: right;
+  clear: both;
+  width: 90%;
+  height: 10em;
+}
+
+header {
+  background-color: darkcyan;
+  padding: 1em 0em;
+  margin: 0px 0px 1em 0px;
+  border: 0px;
+}
+
+button {
+  float: left;
+  clear: both;
+  margin-bottom: 1em;
+}
+
+footer {
+  margin-top: 1em;
+  padding-top: 2em;
+  font-size: 0.8em;
+  clear: both;
+  border-top: solid 5px lightblue;
+}
