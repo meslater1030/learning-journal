@@ -5,28 +5,14 @@ import journal
 import os
 from pyramid import testing
 import pytest
-from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 
 # all the global variables
-TEST_DATABASE_URL = os.environ.get(
-    'DATABASE_URL',
-    'postgresql://meslater:@localhost:5432/test-learning-journal')
-os.environ['DATABASE_URL'] = TEST_DATABASE_URL
 os.environ['TESTING'] = "True"
 INPUT_BTN = '<input type="submit" value="Share" name="Share"/>'
 
 
 # all the fixtures
-
-
-@pytest.fixture()
-def app(db_session):
-    from journal import main
-    from webtest import TestApp
-    app = main()
-    return TestApp(app)
-
 
 @pytest.fixture(scope='function')
 def auth_req(request):
@@ -44,29 +30,6 @@ def auth_req(request):
     request.addfinalizer(cleanup)
 
     return req
-
-
-@pytest.fixture(scope='session')
-def connection(request):
-    engine = create_engine(TEST_DATABASE_URL)
-    journal.Base.metadata.create_all(engine)
-    connection = engine.connect()
-    journal.DBSession.registry.clear()
-    journal.DBSession.configure(bind=connection)
-    journal.Base.metadata.bind = engine
-    request.addfinalizer(journal.Base.metadata.drop_all)
-    return connection
-
-
-@pytest.fixture()
-def db_session(request, connection):
-    from transaction import abort
-    trans = connection.begin()
-    request.addfinalizer(trans.rollback)
-    request.addfinalizer(abort)
-
-    from journal import DBSession
-    return DBSession
 
 
 @pytest.fixture()
