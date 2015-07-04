@@ -46,6 +46,12 @@ class Entry(Base):
         return instance
 
     @classmethod
+    def one(cls, id=None, session=None):
+        if session is None:
+            session = DBSession
+        return session.query(cls).filter(cls.id == id).one()
+
+    @classmethod
     def all(cls, session=None):
         if session is None:
             session = DBSession
@@ -58,15 +64,18 @@ class Entry(Base):
 # all the views
 
 
-@view_config(route_name='add', renderer="templates/add.jinja2",
-             request_method=('POST', 'GET'))
+@view_config(route_name='add', request_method='POST')
 def add_entry(request):
-    username = request.params.get('username', '')
-    return {'username': username}
     title = request.params.get('title')
     text = request.params.get('text')
     Entry.write(title=title, text=text)
     return HTTPFound(request.route_url('home'))
+
+
+@view_config(route_name='add', renderer="templates/add.jinja2")
+def add_entry_view(request):
+    username = request.params.get('username', '')
+    return {'username': username}
 
 
 @view_config(context=DBAPIError)
@@ -75,6 +84,16 @@ def db_exception(context, request):
     response = Response(context.message)
     response.status_int = 500
     return response
+
+
+@view_config(route_name='permalink', renderer="templates/permalink.jinja2")
+def permalink_view(request):
+    entry = Entry.one(request.matchdict['id'])
+    return {'entry': {
+            'id': entry.id,
+            'title': entry.title,
+            'text': entry.text,
+            'created': entry.created}}
 
 
 @view_config(route_name='home', renderer='templates/list.jinja2')
@@ -162,6 +181,7 @@ def main():
     config.add_route('add', '/add')
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
+    config.add_route('permalink', '/permalink/{id}/{title}')
     config.scan()
     app = config.make_wsgi_app()
     return app
