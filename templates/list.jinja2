@@ -1,8 +1,8 @@
 {% extends "base.jinja2" %}
 {% block body %}
     {% for entry in entries %}
-    <article class="entry" id="entry={{entryid}}">
-        <h2>{{ entry.title }}</h3>
+    <article class="entry" id="{{ entry.id }}">
+        <h2><a href="{{ request.route_url('permalink', id=entry.id, title=entry.title) }}">{{ entry.title }}</a></h3>
         <p class="dateline">{{ entry.created.strftime('%b. %d, %Y') }}</p>
         <hr/>
         <div class="entry_body">
