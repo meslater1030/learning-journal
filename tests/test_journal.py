@@ -122,11 +122,27 @@ def test_start_as_anonymous(app):
 # I made this!
 
 
-def test_write_exists(app):
+def test_add_exists(app):
     test_login_success(app)
-    response = app.get('/write')
+    response = app.get('/add')
     actual = response.body
     assert INPUT_BTN in actual
+
+
+def test_permalink_exists(db_session, app):
+    """Tests that a new view is generated when a new entry is
+    added and that the new view has a permalink based on the
+    title of the new entry.
+    """
+    kwargs = {'title': "Test Title", 'text': "Test entry text"}
+    kwargs['session'] = db_session
+    journal.Entry.write(**kwargs)
+    db_session.flush()
+    assert app.get('/test-title')
+    response = app.get('/test-title')
+    actual = response.body
+    assert "text" in actual
+
 
 # all the auth_required tests
 
