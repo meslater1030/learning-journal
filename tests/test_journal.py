@@ -46,6 +46,21 @@ def entry(db_session):
 # all the tests using the app fixture
 
 
+def test_permalink_exists(db_session, app):
+    """Tests that a new view is generated when a new entry is
+    added and that the new view has a permalink based on the
+    title of the new entry.
+    """
+    kwargs = {'title': "Test Title", 'text': "Test entry text"}
+    kwargs['session'] = db_session
+    journal.Entry.write(**kwargs)
+    db_session.flush()
+    app.get('/1/test title')
+    response = app.get('/1/test title')
+    actual = response.body
+    assert "text" in actual
+
+
 def test_add_no_params(app):
     response = app.post('/add', status=500)
     assert 'IntegrityError' in response.body
@@ -127,21 +142,6 @@ def test_add_exists(app):
     response = app.get('/add')
     actual = response.body
     assert INPUT_BTN in actual
-
-
-def test_permalink_exists(db_session, app):
-    """Tests that a new view is generated when a new entry is
-    added and that the new view has a permalink based on the
-    title of the new entry.
-    """
-    kwargs = {'title': "Test Title", 'text': "Test entry text"}
-    kwargs['session'] = db_session
-    journal.Entry.write(**kwargs)
-    db_session.flush()
-    assert app.get('/test-title')
-    response = app.get('/test-title')
-    actual = response.body
-    assert "text" in actual
 
 
 # all the auth_required tests
