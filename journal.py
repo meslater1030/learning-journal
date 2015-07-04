@@ -58,8 +58,11 @@ class Entry(Base):
 # all the views
 
 
-@view_config(route_name='add', request_method='POST')
+@view_config(route_name='add', renderer="templates/add.jinja2",
+             request_method=('POST', 'GET'))
 def add_entry(request):
+    username = request.params.get('username', '')
+    return {'username': username}
     title = request.params.get('title')
     text = request.params.get('text')
     Entry.write(title=title, text=text)
@@ -104,13 +107,6 @@ def login(request):
 def logout(request):
     headers = forget(request)
     return HTTPFound(request.route_url('home'), headers=headers)
-
-
-@view_config(route_name='write', renderer="templates/write.jinja2")
-def write(request):
-    """authenticate a user by username/password"""
-    username = request.params.get('username', '')
-    return {'username': username}
 
 # all the functions
 
@@ -166,7 +162,6 @@ def main():
     config.add_route('add', '/add')
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
-    config.add_route('write', '/write')
     config.scan()
     app = config.make_wsgi_app()
     return app
