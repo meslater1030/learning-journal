@@ -181,7 +181,7 @@ def main():
     config.add_route('add', '/add')
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
-    config.add_route('permalink', '/permalink/{id}/{title}')
+    config.add_route('permalink', '/{id}/{title}')
     config.scan()
     app = config.make_wsgi_app()
     return app
