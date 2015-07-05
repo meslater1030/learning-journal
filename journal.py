@@ -46,7 +46,19 @@ class Entry(Base):
         return instance
 
     @classmethod
-    def one(cls, id=None, session=None):
+    def edit(cls, title=None, text=None, session=None, id=None):
+        if session is None:
+            session = DBSession
+        instance = cls(title=title, text=text, id=id)
+        if title is not "" and text is not "":
+            session.query(cls).filter(cls.id == id).update(
+                {"title": title, "text": text})
+        else:
+            session.query(cls).filter(cls.id == id).delete()
+        return instance
+
+    @classmethod
+    def id_lookup(cls, id=None, session=None):
         if session is None:
             session = DBSession
         return session.query(cls).filter(cls.id == id).one()
@@ -78,6 +90,26 @@ def add_entry_view(request):
     return {'username': username}
 
 
+@view_config(route_name='edit', request_method='POST')
+def edit_entry(request):
+    entry = Entry.id_lookup(request.matchdict['id'])
+    title = request.params.get('title')
+    text = request.params.get('text')
+    id = entry.id
+    Entry.edit(title=title, text=text, id=id)
+    return HTTPFound(request.route_url('home'))
+
+
+@view_config(route_name='edit', renderer="templates/edit.jinja2")
+def edit_view(request):
+    entry = Entry.id_lookup(request.matchdict['id'])
+    return {'entry': {
+            'id': entry.id,
+            'title': entry.title,
+            'text': entry.text,
+            'created': entry.created}}
+
+
 @view_config(context=DBAPIError)
 def db_exception(context, request):
     from pyramid.response import Response
@@ -88,7 +120,7 @@ def db_exception(context, request):
 
 @view_config(route_name='permalink', renderer="templates/permalink.jinja2")
 def permalink_view(request):
-    entry = Entry.one(request.matchdict['id'])
+    entry = Entry.id_lookup(request.matchdict['id'])
     return {'entry': {
             'id': entry.id,
             'title': entry.title,
@@ -182,6 +214,7 @@ def main():
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
     config.add_route('permalink', '/{id}/{title}')
+    config.add_route('edit', 'edit/{id}/{title}')
     config.scan()
     app = config.make_wsgi_app()
     return app
