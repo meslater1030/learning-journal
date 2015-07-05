@@ -60,6 +60,18 @@ def test_permalink_exists(db_session, app):
     assert expected in actual
 
 
+# def test_editing(db_session, app):
+#     """Tests that an existing entry can be edited"""
+#     import pdb; pdb.set_trace()
+#     journal.Entry.write(session=db_session, text=u'test text', title='title')
+#     # journal.Entry.edit(session=db_session, id=2)
+#     # db_session.flush()
+#     response = app.get('/')
+#     actual = response.body
+#     expected = u"test text"
+#     assert expected not in actual
+
+
 def test_add_no_params(app):
     response = app.post('/add', status=500)
     assert 'IntegrityError' in response.body
