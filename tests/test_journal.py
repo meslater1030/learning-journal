@@ -51,14 +51,13 @@ def test_permalink_exists(db_session, app):
     added and that the new view has a permalink based on the
     title of the new entry.
     """
-    kwargs = {'title': "Test Title", 'text': "Test entry text"}
-    kwargs['session'] = db_session
-    journal.Entry.write(**kwargs)
+    data = {'text': 'test text', 'title': "Title"}
+    journal.Entry.write(session=db_session, **data)
     db_session.flush()
-    app.get('/1/test title')
-    response = app.get('/1/test title')
+    response = app.get('/1/Title')
     actual = response.body
-    assert "text" in actual
+    expected = 'test text'
+    assert expected in actual
 
 
 def test_add_no_params(app):
