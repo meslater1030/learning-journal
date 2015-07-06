@@ -54,7 +54,7 @@ def test_permalink_exists(db_session, app):
     data = {'text': 'test text', 'title': "Title"}
     journal.Entry.write(session=db_session, **data)
     db_session.flush()
-    response = app.get('/1/Title')
+    response = app.get('/8/Title')
     actual = response.body
     expected = 'test text'
     assert expected in actual
@@ -86,7 +86,7 @@ def test_editing(db_session, app):
     journal.Entry.write(session=db_session, text=u'test text', title='title')
     db_session.flush()
     journal.Entry.edit(session=db_session, text=u'better text',
-                       title='title', id='3')
+                       title='title', id='10')
     db_session.flush()
     response = app.get('/')
     actual = response.body
