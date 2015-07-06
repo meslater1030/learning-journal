@@ -170,8 +170,6 @@ def test_start_as_anonymous(app):
     actual = response.body
     assert INPUT_BTN not in actual
 
-# I made this!
-
 
 def test_add_exists(app):
     test_login_success(app)
