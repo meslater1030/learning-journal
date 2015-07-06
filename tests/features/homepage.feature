@@ -8,12 +8,12 @@ Scenario: The Homepage lists entries for anonymous users
     When the user vists the homepage
     Then they see a list of 3 entries
 
-Feature: Markdown
+Scenario: Markdown
     Given an author
     When the user adds an entry
     Then that entry fomats with markdown
 
-Feature: Colorized Code
+Scenario: Colorized Code
     Given an author
-    When the user adds code in an entry
+    When the user adds an entry
     Then that entry shows color in the code

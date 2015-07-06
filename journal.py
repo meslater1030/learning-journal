@@ -2,7 +2,11 @@
 from __future__ import unicode_literals
 from cryptacular.bcrypt import BCRYPTPasswordManager
 import datetime
+import markdown
 import os
+from pygments import highlight
+from pygments.lexers import PythonLexer
+from pygments.formatters import HtmlFormatter
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
@@ -27,6 +31,20 @@ DATABASE_URL = os.environ.get(
 )
 
 
+def style_text(text):
+    output = ""
+    if text is None:
+        pass
+    else:
+        text = text.split("```")
+        for i in range(len(text)):
+            if i % 2 == 0:
+                output += markdown.markdown(text[i])
+            else:
+                output += highlight(text[i], PythonLexer(), HtmlFormatter())
+    return output
+
+
 # all the classes
 class Entry(Base):
     __tablename__ = 'entries'
@@ -41,9 +59,29 @@ class Entry(Base):
     def write(cls, title=None, text=None, session=None):
         if session is None:
             session = DBSession
+        text = style_text(text)
         instance = cls(title=title, text=text)
         session.add(instance)
         return instance
+
+    @classmethod
+    def edit(cls, title=None, text=None, session=None, id=None):
+        if session is None:
+            session = DBSession
+        text = style_text(text)
+        instance = cls(title=title, text=text, id=id)
+        if title is not "" and text is not "":
+            session.query(cls).filter(cls.id == id).update(
+                {"title": title, "text": text})
+        else:
+            session.query(cls).filter(cls.id == id).delete()
+        return instance
+
+    @classmethod
+    def id_lookup(cls, id=None, session=None):
+        if session is None:
+            session = DBSession
+        return session.query(cls).filter(cls.id == id).one()
 
     @classmethod
     def all(cls, session=None):
@@ -66,12 +104,48 @@ def add_entry(request):
     return HTTPFound(request.route_url('home'))
 
 
+@view_config(route_name='add', renderer="templates/add.jinja2")
+def add_entry_view(request):
+    username = request.params.get('username', '')
+    return {'username': username}
+
+
+@view_config(route_name='edit', request_method='POST')
+def edit_entry(request):
+    entry = Entry.id_lookup(request.matchdict['id'])
+    title = request.params.get('title')
+    text = request.params.get('text')
+    id = entry.id
+    Entry.edit(title=title, text=text, id=id)
+    return HTTPFound(request.route_url('home'))
+
+
+@view_config(route_name='edit', renderer="templates/edit.jinja2")
+def edit_view(request):
+    entry = Entry.id_lookup(request.matchdict['id'])
+    return {'entry': {
+            'id': entry.id,
+            'title': entry.title,
+            'text': entry.text,
+            'created': entry.created}}
+
+
 @view_config(context=DBAPIError)
 def db_exception(context, request):
     from pyramid.response import Response
     response = Response(context.message)
     response.status_int = 500
     return response
+
+
+@view_config(route_name='permalink', renderer="templates/permalink.jinja2")
+def permalink_view(request):
+    entry = Entry.id_lookup(request.matchdict['id'])
+    return {'entry': {
+            'id': entry.id,
+            'title': entry.title,
+            'text': entry.text,
+            'created': entry.created}}
 
 
 @view_config(route_name='home', renderer='templates/list.jinja2')
@@ -104,13 +178,6 @@ def login(request):
 def logout(request):
     headers = forget(request)
     return HTTPFound(request.route_url('home'), headers=headers)
-
-
-@view_config(route_name='write', renderer="templates/write.jinja2")
-def write(request):
-    """authenticate a user by username/password"""
-    username = request.params.get('username', '')
-    return {'username': username}
 
 # all the functions
 
@@ -166,7 +233,8 @@ def main():
     config.add_route('add', '/add')
     config.add_route('login', '/login')
     config.add_route('logout', '/logout')
-    config.add_route('write', '/write')
+    config.add_route('permalink', '/{id}/{title}')
+    config.add_route('edit', 'edit/{id}/{title}')
     config.scan()
     app = config.make_wsgi_app()
     return app

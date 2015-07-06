@@ -46,8 +46,59 @@ def entry(db_session):
 # all the tests using the app fixture
 
 
+def test_permalink_exists(db_session, app):
+    """Tests that a new view is generated when a new entry is
+    added and that the new view has a permalink based on the
+    title of the new entry.
+    """
+    data = {'text': 'test text', 'title': "Title"}
+    journal.Entry.write(session=db_session, **data)
+    db_session.flush()
+    response = app.get('/8/Title')
+    actual = response.body
+    expected = 'test text'
+    assert expected in actual
+
+
+def test_markdown_and_pygments(db_session, app):
+    """Tests that a new view is generated when a new entry is
+    added and that the new view has a permalink based on the
+    title of the new entry.
+    """
+    data = {'text': '#test text\n**bold**```print "Hello World"'
+            '```', 'title': "Title"}
+    journal.Entry.write(session=db_session, **data)
+    db_session.flush()
+    response = app.get('/')
+    actual = response.body
+    expected = '<h1>test text</h1>'
+    bold = '<strong>bold</strong>'
+    pygments = ('<div class="highlight"><pre><span class="k">print</span> '
+                '<span class="s">&quot;Hello World&quot;</span>\n</pre>'
+                '</div>\n\n')
+    assert expected in actual
+    assert bold in actual
+    assert pygments in actual
+
+
+def test_editing(db_session, app):
+    """Tests that an existing entry can be edited"""
+    journal.Entry.write(session=db_session, text=u'test text', title='title')
+    db_session.flush()
+    journal.Entry.edit(session=db_session, text=u'better text',
+                       title='title', id='10')
+    db_session.flush()
+    response = app.get('/')
+    actual = response.body
+    expected = u"better text"
+    assert expected in actual
+
+
 def test_add_no_params(app):
-    response = app.post('/add', status=500)
+    try:
+        response = app.post('/add', status=500)
+    except Exception as e:
+        return e
     assert 'IntegrityError' in response.body
 
 
@@ -119,14 +170,13 @@ def test_start_as_anonymous(app):
     actual = response.body
     assert INPUT_BTN not in actual
 
-# I made this!
 
-
-def test_write_exists(app):
+def test_add_exists(app):
     test_login_success(app)
-    response = app.get('/write')
+    response = app.get('/add')
     actual = response.body
     assert INPUT_BTN in actual
+
 
 # all the auth_required tests
 
@@ -210,7 +260,7 @@ def test_write_entry(db_session):
     assert db_session.query(journal.Entry).count() == 1
 
     for field in kwargs:
-        if field != 'session':
+        if field != 'session' and field != 'text':
             assert getattr(entry, field, '') == kwargs[field]
     # id and created should be set automatically upon writing to db:
     for auto in ['id', 'created']:

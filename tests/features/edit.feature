@@ -1,4 +1,4 @@
-Feature: Detail
+Feature: Edit
     A page that shows one entry with a permalink
 
 
