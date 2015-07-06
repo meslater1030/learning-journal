@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 from cryptacular.bcrypt import BCRYPTPasswordManager
 import datetime
+import markdown
 import os
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
@@ -41,6 +42,7 @@ class Entry(Base):
     def write(cls, title=None, text=None, session=None):
         if session is None:
             session = DBSession
+        text = markdown.markdown(text)
         instance = cls(title=title, text=text)
         session.add(instance)
         return instance
@@ -49,6 +51,7 @@ class Entry(Base):
     def edit(cls, title=None, text=None, session=None, id=None):
         if session is None:
             session = DBSession
+        text = markdown.markdown(text)
         instance = cls(title=title, text=text, id=id)
         if title is not "" and text is not "":
             session.query(cls).filter(cls.id == id).update(
