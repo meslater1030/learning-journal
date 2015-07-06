@@ -60,32 +60,38 @@ def test_permalink_exists(db_session, app):
     assert expected in actual
 
 
-def test_markdown(db_session, app):
+def test_markdown_and_pygments(db_session, app):
     """Tests that a new view is generated when a new entry is
     added and that the new view has a permalink based on the
     title of the new entry.
     """
-    data = {'text': '#test text\n**bold**', 'title': "Title"}
+    data = {'text': '#test text\n**bold**```print "Hello World"'
+            '```', 'title': "Title"}
     journal.Entry.write(session=db_session, **data)
     db_session.flush()
     response = app.get('/')
     actual = response.body
     expected = '<h1>test text</h1>'
     bold = '<strong>bold</strong>'
+    pygments = ('<div class="highlight"><pre><span class="k">print</span> '
+                '<span class="s">&quot;Hello World&quot;</span>\n</pre>'
+                '</div>\n\n')
     assert expected in actual
     assert bold in actual
+    assert pygments in actual
 
 
-# def test_editing(db_session, app):
-#     """Tests that an existing entry can be edited"""
-#     import pdb; pdb.set_trace()
-#     journal.Entry.write(session=db_session, text=u'test text', title='title')
-#     # journal.Entry.edit(session=db_session, id=2)
-#     # db_session.flush()
-#     response = app.get('/')
-#     actual = response.body
-#     expected = u"test text"
-#     assert expected not in actual
+def test_editing(db_session, app):
+    """Tests that an existing entry can be edited"""
+    journal.Entry.write(session=db_session, text=u'test text', title='title')
+    db_session.flush()
+    journal.Entry.edit(session=db_session, text=u'better text',
+                       title='title', id='3')
+    db_session.flush()
+    response = app.get('/')
+    actual = response.body
+    expected = u"better text"
+    assert expected in actual
 
 
 def test_add_no_params(app):
