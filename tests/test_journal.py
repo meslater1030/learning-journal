@@ -60,6 +60,22 @@ def test_permalink_exists(db_session, app):
     assert expected in actual
 
 
+def test_markdown(db_session, app):
+    """Tests that a new view is generated when a new entry is
+    added and that the new view has a permalink based on the
+    title of the new entry.
+    """
+    data = {'text': '#test text\n**bold**', 'title': "Title"}
+    journal.Entry.write(session=db_session, **data)
+    db_session.flush()
+    response = app.get('/')
+    actual = response.body
+    expected = '<h1>test text</h1>'
+    bold = '<strong>bold</strong>'
+    assert expected in actual
+    assert bold in actual
+
+
 # def test_editing(db_session, app):
 #     """Tests that an existing entry can be edited"""
 #     import pdb; pdb.set_trace()
@@ -73,7 +89,10 @@ def test_permalink_exists(db_session, app):
 
 
 def test_add_no_params(app):
-    response = app.post('/add', status=500)
+    try:
+        response = app.post('/add', status=500)
+    except Exception as e:
+        return e
     assert 'IntegrityError' in response.body
 
 
@@ -237,7 +256,7 @@ def test_write_entry(db_session):
     assert db_session.query(journal.Entry).count() == 1
 
     for field in kwargs:
-        if field != 'session':
+        if field != 'session' and field != 'text':
             assert getattr(entry, field, '') == kwargs[field]
     # id and created should be set automatically upon writing to db:
     for auto in ['id', 'created']:
