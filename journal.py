@@ -31,20 +31,6 @@ DATABASE_URL = os.environ.get(
 )
 
 
-def style_text(text):
-    output = ""
-    if text is None:
-        pass
-    else:
-        text = text.split("```")
-        for i in range(len(text)):
-            if i % 2 == 0:
-                output += markdown.markdown(text[i])
-            else:
-                output += highlight(text[i], PythonLexer(), HtmlFormatter())
-    return output
-
-
 # all the classes
 class Entry(Base):
     __tablename__ = 'entries'
@@ -55,11 +41,21 @@ class Entry(Base):
     created = sa.Column(sa.DateTime, nullable=False,
                         default=datetime.datetime.utcnow)
 
+    @property
+    def markdown(self):
+        output = ""
+        text = self.text.split("```")
+        for i in range(len(text)):
+            if i % 2 == 0:
+                output += markdown.markdown(text[i])
+            else:
+                output += highlight(text[i], PythonLexer(), HtmlFormatter())
+        return output
+
     @classmethod
     def write(cls, title=None, text=None, session=None):
         if session is None:
             session = DBSession
-        text = style_text(text)
         instance = cls(title=title, text=text)
         session.add(instance)
         return instance
@@ -68,7 +64,6 @@ class Entry(Base):
     def edit(cls, title=None, text=None, session=None, id=None):
         if session is None:
             session = DBSession
-        text = style_text(text)
         instance = cls(title=title, text=text, id=id)
         if title is not "" and text is not "":
             session.query(cls).filter(cls.id == id).update(
@@ -141,11 +136,7 @@ def db_exception(context, request):
 @view_config(route_name='permalink', renderer="templates/permalink.jinja2")
 def permalink_view(request):
     entry = Entry.id_lookup(request.matchdict['id'])
-    return {'entry': {
-            'id': entry.id,
-            'title': entry.title,
-            'text': entry.text,
-            'created': entry.created}}
+    return {'entry': entry}
 
 
 @view_config(route_name='home', renderer='templates/list.jinja2')

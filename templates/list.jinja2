@@ -6,7 +6,7 @@
         <p class="dateline">{{ entry.created.strftime('%b. %d, %Y') }}</p>
         <hr/>
         <div class="entry_body">
-            {{ entry.text|safe }}
+            {{ entry.markdown|safe }}
         </div>
     </article>
     {% else %}

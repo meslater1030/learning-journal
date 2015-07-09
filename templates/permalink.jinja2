@@ -5,7 +5,7 @@
         <p class="dateline">{{ entry.created.strftime('%b. %d, %Y') }}</p>
         <hr/>
         <div class="entry_body">
-            {{ entry.text|safe }}
+            {{ entry.markdown|safe }}
         </div>
         <div class="control_row">
             <a href="{{ request.route_url('edit', id=entry.id, title=entry.title) }}">Edit</a>
