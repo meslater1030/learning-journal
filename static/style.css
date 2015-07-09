@@ -5,6 +5,21 @@ body {
 header h1 {
   text-align: center;
   font-family: 'Montserrat', sans-serif;
+  color: white;
+  text-shadow:
+  -1px -1px 0 #000,
+  1px -1px 0 #000,
+  -1px 1px 0 #000,
+  1px 1px 0 #000;
+}
+
+header a {
+  color: white;
+  text-shadow:
+  -1px -1px 0 #000,
+  1px -1px 0 #000,
+  -1px 1px 0 #000,
+  1px 1px 0 #000;
 }
 
 h1 {
@@ -22,6 +37,12 @@ h1, h2, h3, h4, h5, h6 {
 
 header p {
   text-align: center;
+  color: white;
+  text-shadow:
+  -1px -1px 0 #000,
+  1px -1px 0 #000,
+  -1px 1px 0 #000,
+  1px 1px 0 #000;
 }
 
 .entry p {
