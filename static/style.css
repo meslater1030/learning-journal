@@ -14,12 +14,19 @@ header h1 {
 }
 
 header a {
+  text-decoration: none;
   color: white;
   text-shadow:
   -1px -1px 0 #000,
   1px -1px 0 #000,
   -1px 1px 0 #000,
   1px 1px 0 #000;
+}
+
+header a:hover {
+  color: black
+  text-decoration: none;
+  text-shadow: none;
 }
 
 h1 {
@@ -68,16 +75,16 @@ header ul {
   list-style-type: none;
 }
 
-a {
+#content a {
   text-decoration: none;
-  color:  darkblue
+  color:  #4F2F4F
 }
 
-a:visited {
-  color: darkgreen;
+#content a:visited {
+  color: #26466D;
 }
 
-a:hover {
+#content a:hover {
   color: black;
 }
 
@@ -152,7 +159,7 @@ footer {
 .highlight .s { color: grey } /* Literal.String */
 .highlight .n, .p { color: #CDB5CD }
 .highlight .na { color: #7D9029 } /* Name.Attribute */
-.highlight .nb { color: #008000 } /* Name.Builtin */
+.highlight .nb { color: grey } /* Name.Builtin */
 .highlight .nc { color: #0000FF; font-weight: bold } /* Name.Class */
 .highlight .no { color: #880000 } /* Name.Constant */
 .highlight .nd { color: #AA22FF } /* Name.Decorator */
