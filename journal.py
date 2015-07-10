@@ -4,20 +4,24 @@ from cryptacular.bcrypt import BCRYPTPasswordManager
 import datetime
 import markdown
 import os
+
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
+
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPFound
 from pyramid.security import remember, forget
 from pyramid.view import view_config
+
 import sqlalchemy as sa
 from sqlalchemy import create_engine
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
+
 from waitress import serve
 from zope.sqlalchemy import ZopeTransactionExtension
 
@@ -41,6 +45,30 @@ class Entry(Base):
     created = sa.Column(sa.DateTime, nullable=False,
                         default=datetime.datetime.utcnow)
 
+    @classmethod
+    def all(cls, session=None):
+        if session is None:
+            session = DBSession
+        return session.query(cls).order_by(cls.created.desc()).all()
+
+    @classmethod
+    def edit(cls, title=None, text=None, session=None, id=None):
+        if session is None:
+            session = DBSession
+        instance = cls(title=title, text=text, id=id)
+        if title is not "" and text is not "":
+            session.query(cls).filter(cls.id == id).update(
+                {"title": title, "text": text})
+        else:
+            session.query(cls).filter(cls.id == id).delete()
+        return instance
+
+    @classmethod
+    def id_lookup(cls, id=None, session=None):
+        if session is None:
+            session = DBSession
+        return session.query(cls).get(id)
+
     @property
     def markdown(self):
         output = ""
@@ -59,30 +87,6 @@ class Entry(Base):
         instance = cls(title=title, text=text)
         session.add(instance)
         return instance
-
-    @classmethod
-    def edit(cls, title=None, text=None, session=None, id=None):
-        if session is None:
-            session = DBSession
-        instance = cls(title=title, text=text, id=id)
-        if title is not "" and text is not "":
-            session.query(cls).filter(cls.id == id).update(
-                {"title": title, "text": text})
-        else:
-            session.query(cls).filter(cls.id == id).delete()
-        return instance
-
-    @classmethod
-    def id_lookup(cls, id=None, session=None):
-        if session is None:
-            session = DBSession
-        return session.query(cls).filter(cls.id == id).one()
-
-    @classmethod
-    def all(cls, session=None):
-        if session is None:
-            session = DBSession
-        return session.query(cls).order_by(cls.created.desc()).all()
 
     def __repr__(self):
         return "<Entry(title='%s', created='%s')>" % (
@@ -105,24 +109,17 @@ def add_entry_view(request):
     return {'username': username}
 
 
-@view_config(route_name='edit', request_method='POST')
+@view_config(route_name='edit', renderer="templates/edit.jinja2")
 def edit_entry(request):
     entry = Entry.id_lookup(request.matchdict['id'])
-    title = request.params.get('title')
-    text = request.params.get('text')
-    id = entry.id
-    Entry.edit(title=title, text=text, id=id)
-    return HTTPFound(request.route_url('home'))
-
-
-@view_config(route_name='edit', renderer="templates/edit.jinja2")
-def edit_view(request):
-    entry = Entry.id_lookup(request.matchdict['id'])
-    return {'entry': {
-            'id': entry.id,
-            'title': entry.title,
-            'text': entry.text,
-            'created': entry.created}}
+    if request.method == 'POST':
+        title = request.params.get('title')
+        text = request.params.get('text')
+        id = entry.id
+        Entry.edit(title=title, text=text, id=id)
+        return HTTPFound(request.route_url('permalink', id=id, title=title))
+    else:
+        return {'entry': entry}
 
 
 @view_config(context=DBAPIError)
