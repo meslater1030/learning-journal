@@ -58,11 +58,8 @@ class Entry(Base):
         if session is None:
             session = DBSession
         instance = cls(title=title, text=text, id=id)
-        if title is not "" and text is not "":
-            session.query(cls).filter(cls.id == id).update(
-                {"title": title, "text": text})
-        else:
-            session.query(cls).filter(cls.id == id).delete()
+        session.query(cls).filter(cls.id == id).update(
+            {"title": title, "text": text})
         return instance
 
     @classmethod
@@ -193,6 +190,7 @@ def do_login(request):
     if username == settings.get('auth.username', ''):
         hashed = settings.get('auth.password', '')
         return manager.check(hashed, password)
+    return False
 
 
 def init_db():
@@ -207,7 +205,6 @@ def main():
     settings['reload_all'] = debug
     settings['debug_all'] = debug
     settings['auth.username'] = os.environ.get('AUTH_USERNAME', 'admin')
-    settings['auth.password'] = os.environ.get('AUTH_PASSWORD', 'secret')
     manager = BCRYPTPasswordManager()
     settings['auth.password'] = os.environ.get(
         'AUTH_PASSWORD', manager.encode('secret')

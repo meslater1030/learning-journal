@@ -5,7 +5,7 @@
         <form action="{{ request.route_url('edit', id=entry.id, title=entry.title) }}" method="POST" class="edit_entry">
             <div class="field">
                 <label for="title">Title</label>
-                <textarea name="title" id="title" rows="1" cols="30">{{  entry.title  }}</textarea>
+                <input type="text" size="30" name="title" id="title" value="{{  entry.title  }}"/>
             </div>
             <div class="field">
                 <label for="text">Text</label>
