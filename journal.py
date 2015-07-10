@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 from cryptacular.bcrypt import BCRYPTPasswordManager
 import datetime
+import json
 import markdown
 import os
 
@@ -13,6 +14,7 @@ from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPFound
+from pyramid.response import Response
 from pyramid.security import remember, forget
 from pyramid.view import view_config
 
@@ -95,36 +97,47 @@ class Entry(Base):
 # all the views
 
 
-@view_config(route_name='add', request_method='POST')
-def add_entry(request):
-    title = request.params.get('title')
-    text = request.params.get('text')
-    Entry.write(title=title, text=text)
-    return HTTPFound(request.route_url('home'))
-
-
 @view_config(route_name='add', renderer="templates/add.jinja2")
 def add_entry_view(request):
-    username = request.params.get('username', '')
-    return {'username': username}
+    if not request.authenticated_userid:
+        return HTTPFound(request.route_url('login'))
+
+    if request.method == 'POST':
+        title = request.params.get('title')
+        text = request.params.get('text')
+        Entry.write(title=title, text=text)
+        return HTTPFound(request.route_url('home'))
+    return {}
 
 
 @view_config(route_name='edit', renderer="templates/edit.jinja2")
 def edit_entry(request):
+    if not request.authenticated_userid:
+        return HTTPFound(request.route_url('login'))
+
     entry = Entry.id_lookup(request.matchdict['id'])
     if request.method == 'POST':
         title = request.params.get('title')
         text = request.params.get('text')
         id = entry.id
         Entry.edit(title=title, text=text, id=id)
+        if 'HTTP_X_REQUESTED_WITH' in request.environ:
+            return Response(body=json.dumps({
+                'title': title,
+                'text': text.markdown,
+                }), content_type=b'application/json')
         return HTTPFound(request.route_url('permalink', id=id, title=title))
     else:
+        if 'HTTP_X_REQUESTED_WITH' in request.environ:
+            return Response(body=json.dumps({
+                'title': title,
+                'text': text.markdown,
+                }), content_type=b'application/json')
         return {'entry': entry}
 
 
 @view_config(context=DBAPIError)
 def db_exception(context, request):
-    from pyramid.response import Response
     response = Response(context.message)
     response.status_int = 500
     return response
