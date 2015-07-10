@@ -2,7 +2,6 @@
 from __future__ import unicode_literals
 from cryptacular.bcrypt import BCRYPTPasswordManager
 import datetime
-import json
 import markdown
 import os
 
@@ -107,30 +106,30 @@ def add_entry_view(request):
     return {}
 
 
-@view_config(route_name='edit', renderer="templates/edit.jinja2")
+@view_config(route_name='edit', xhr=True, renderer='json')
+@view_config(route_name='edit', xhr=False, renderer='templates/edit.jinja2')
 def edit_entry(request):
     if not request.authenticated_userid:
         return HTTPFound(request.route_url('login'))
 
-    entry = Entry.id_lookup(request.matchdict['id'])
+    id = request.matchdict['id']
     if request.method == 'POST':
+        entry = Entry.id_lookup(request.matchdict['id'])
         title = request.params.get('title')
         text = request.params.get('text')
         id = entry.id
         Entry.edit(title=title, text=text, id=id)
-        if 'HTTP_X_REQUESTED_WITH' in request.environ:
-            return Response(body=json.dumps({
-                'title': title,
-                'text': text.markdown,
-                }), content_type=b'application/json')
-        return HTTPFound(request.route_url('permalink', id=id, title=title))
+        entry = Entry.id_lookup(id)
+        resp_title, resp_text = entry.title, entry.markdown
+        if 'HTTP_X_REQUESTED_WITH' not in request.environ:
+            return HTTPFound(request.route_url('permalink',
+                                               id=entry.id, title=entry.title))
+    elif request.method == 'GET':
+        entry = Entry.id_lookup(request.matchdict['id'])
+        resp_title, resp_text = entry.title, entry.text
     else:
-        if 'HTTP_X_REQUESTED_WITH' in request.environ:
-            return Response(body=json.dumps({
-                'title': title,
-                'text': text.markdown,
-                }), content_type=b'application/json')
-        return {'entry': entry}
+        return HTTPFound(request.route_url('home'))
+    return {'entry': {'id': id, 'title': resp_title, 'text': resp_text}}
 
 
 @view_config(context=DBAPIError)

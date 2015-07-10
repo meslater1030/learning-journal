@@ -1,10 +1,10 @@
 {% extends "base.jinja2" %}
 {% block body %}
  <article class="entry" id="{{ entry.id }}">
-    <h2>{{ entry.title }}</h3>
+    <h2 id="entry-title">{{ entry.title }}</h3>
     <p class="dateline">{{ entry.created.strftime('%b. %d, %Y') }}</p>
     <hr/>
-    <div class="entry_body">
+    <div class="entry_body" id="entry-text">
         {{ entry.markdown|safe }}
     </div>
     <div class="control_row">
@@ -13,10 +13,9 @@
 </article>
 <div class="hide-on-start" id="edit-form-container">
     <form id="edit-form" action="{{ request.route_url('edit', id=entry.id, title=entry.title)}}" method="POST">
-        <h2>Edit Entry</h2>
         <input id="form-id" type="hidden" value="{{ entry.id }}">
         <input id="form-title" name="title" type="text" value="{{ entry.title }}">
-        <textarea id="form-text" name="text"></textarea>
+        <textarea id="form-text" name="text">{{ entry.text }}</textarea>
 
         <div class="control_row">
             <a id="update-link" href="{{ request.route_url('permalink', id=entry.id, title=entry.title) }}">Update</a>
