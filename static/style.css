@@ -11,6 +11,7 @@ header h1 {
   1px -1px 0 #000,
   -1px 1px 0 #000,
   1px 1px 0 #000;
+  text-size: 3em;
 }
 
 header a {
@@ -66,6 +67,7 @@ header li {
   display: inline;
   padding:  0em 2em;
   list-style-type: none;
+  text-size: 1.5em;
 }
 
 header ul {
@@ -86,6 +88,21 @@ header ul {
 
 #content a:hover {
   color: black;
+}
+
+#content {
+  margin: 1em 8em;
+  background-color: #ddd;
+  box-shadow: 0px 7px 35px #ddd;
+  padding: 0.5em;
+}
+
+pre {
+  padding: 5px;
+}
+
+.highlight {
+  margin-right: 5px;
 }
 
 input {
