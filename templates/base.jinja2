@@ -13,7 +13,7 @@
     </head>
     <body>
         <header>
-        <h1 id="hide">Megan's Python Journal</h1>
+        <h1>Megan's Python Journal</h1>
         <p>Things I've learned</p>
             <nav id="user-controls">
                 <ul>
@@ -22,7 +22,7 @@
                     <li><a href="{{ request.route_url('login') }}">Log In</a></li>
                 {% else %}
                     <li><a href="{{ request.route_url('logout') }}">Log Out</a></li>
-                    <li><a href="{{ request.route_url('add') }}">Add an Entry</a></li>
+                    <li><a id="add-link" href="{{ request.route_url('add') }}">Add an Entry</a></li>
                 {% endif %}
                 </ul>
             </nav>
@@ -30,6 +30,21 @@
         <main>
             <section id="content">
             {% block body %}{% endblock %}
+            </section>
+            <section id="hide-on-start">
+                <form action="{{ request.route_url('add') }}" method="POST" class="add_entry">
+                    <div class="field">
+                        <label for="title">Title</label>
+                        <input type="text" size="30" name="title" id="title"/>
+                    </div>
+                    <div class="field">
+                        <label for="text">Text</label>
+                        <textarea name="text" id="text" rows="5" cols="80"></textarea>
+                    </div>
+                    <div class="control_row">
+                        <input type="submit" value="Share" name="Share" id="add"/>
+                    </div>
+                </form>
             </section>
         </main>
         <footer>

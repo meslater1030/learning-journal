@@ -40,4 +40,21 @@ $(document).ready(function(){
             alert("error");
         });
     });
+
+    $('#add-link').on('click', function(event){
+        event.preventDefault();
+
+        var title = $('#form-title').val();
+        var text = $('#form-text').val();
+
+        $.ajax({
+            method: "GET",
+            url: "/add",
+        }).done(function(response){
+            $('#content').hide();
+            $('#add-form-container').show();
+        }).fail(function(){
+            alert("error");
+        });
+    });
 })

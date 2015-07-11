@@ -93,7 +93,8 @@ class Entry(Base):
 # all the views
 
 
-@view_config(route_name='add', renderer="templates/add.jinja2")
+@view_config(route_name='add', xhr=True, renderer='json')
+@view_config(route_name='add', xhr=False, renderer="templates/add.jinja2")
 def add_entry_view(request):
     if not request.authenticated_userid:
         return HTTPFound(request.route_url('login'))
@@ -103,7 +104,8 @@ def add_entry_view(request):
         text = request.params.get('text')
         Entry.write(title=title, text=text)
         return HTTPFound(request.route_url('home'))
-    return {}
+    elif request.method == 'GET':
+        return {}
 
 
 @view_config(route_name='edit', xhr=True, renderer='json')
