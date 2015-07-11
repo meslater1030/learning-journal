@@ -4,20 +4,25 @@ from cryptacular.bcrypt import BCRYPTPasswordManager
 import datetime
 import markdown
 import os
+
 from pygments import highlight
 from pygments.lexers import PythonLexer
 from pygments.formatters import HtmlFormatter
+
 from pyramid.authentication import AuthTktAuthenticationPolicy
 from pyramid.authorization import ACLAuthorizationPolicy
 from pyramid.config import Configurator
 from pyramid.httpexceptions import HTTPFound
+from pyramid.response import Response
 from pyramid.security import remember, forget
 from pyramid.view import view_config
+
 import sqlalchemy as sa
 from sqlalchemy import create_engine
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
+
 from waitress import serve
 from zope.sqlalchemy import ZopeTransactionExtension
 
@@ -41,6 +46,27 @@ class Entry(Base):
     created = sa.Column(sa.DateTime, nullable=False,
                         default=datetime.datetime.utcnow)
 
+    @classmethod
+    def all(cls, session=None):
+        if session is None:
+            session = DBSession
+        return session.query(cls).order_by(cls.created.desc()).all()
+
+    @classmethod
+    def edit(cls, title=None, text=None, session=None, id=None):
+        if session is None:
+            session = DBSession
+        instance = cls(title=title, text=text, id=id)
+        session.query(cls).filter(cls.id == id).update(
+            {"title": title, "text": text})
+        return instance
+
+    @classmethod
+    def id_lookup(cls, id=None, session=None):
+        if session is None:
+            session = DBSession
+        return session.query(cls).get(id)
+
     @property
     def markdown(self):
         output = ""
@@ -60,30 +86,6 @@ class Entry(Base):
         session.add(instance)
         return instance
 
-    @classmethod
-    def edit(cls, title=None, text=None, session=None, id=None):
-        if session is None:
-            session = DBSession
-        instance = cls(title=title, text=text, id=id)
-        if title is not "" and text is not "":
-            session.query(cls).filter(cls.id == id).update(
-                {"title": title, "text": text})
-        else:
-            session.query(cls).filter(cls.id == id).delete()
-        return instance
-
-    @classmethod
-    def id_lookup(cls, id=None, session=None):
-        if session is None:
-            session = DBSession
-        return session.query(cls).filter(cls.id == id).one()
-
-    @classmethod
-    def all(cls, session=None):
-        if session is None:
-            session = DBSession
-        return session.query(cls).order_by(cls.created.desc()).all()
-
     def __repr__(self):
         return "<Entry(title='%s', created='%s')>" % (
             self.title, self.created)
@@ -91,43 +93,49 @@ class Entry(Base):
 # all the views
 
 
-@view_config(route_name='add', request_method='POST')
-def add_entry(request):
-    title = request.params.get('title')
-    text = request.params.get('text')
-    Entry.write(title=title, text=text)
-    return HTTPFound(request.route_url('home'))
-
-
-@view_config(route_name='add', renderer="templates/add.jinja2")
+@view_config(route_name='add', xhr=True, renderer='json')
+@view_config(route_name='add', xhr=False, renderer="templates/add.jinja2")
 def add_entry_view(request):
-    username = request.params.get('username', '')
-    return {'username': username}
+    if not request.authenticated_userid:
+        return HTTPFound(request.route_url('login'))
+
+    if request.method == 'POST':
+        title = request.params.get('title')
+        text = request.params.get('text')
+        Entry.write(title=title, text=text)
+        return HTTPFound(request.route_url('home'))
+    elif request.method == 'GET':
+        return {}
 
 
-@view_config(route_name='edit', request_method='POST')
+@view_config(route_name='edit', xhr=True, renderer='json')
+@view_config(route_name='edit', xhr=False, renderer='templates/edit.jinja2')
 def edit_entry(request):
-    entry = Entry.id_lookup(request.matchdict['id'])
-    title = request.params.get('title')
-    text = request.params.get('text')
-    id = entry.id
-    Entry.edit(title=title, text=text, id=id)
-    return HTTPFound(request.route_url('home'))
+    if not request.authenticated_userid:
+        return HTTPFound(request.route_url('login'))
 
-
-@view_config(route_name='edit', renderer="templates/edit.jinja2")
-def edit_view(request):
-    entry = Entry.id_lookup(request.matchdict['id'])
-    return {'entry': {
-            'id': entry.id,
-            'title': entry.title,
-            'text': entry.text,
-            'created': entry.created}}
+    id = request.matchdict['id']
+    if request.method == 'POST':
+        entry = Entry.id_lookup(request.matchdict['id'])
+        title = request.params.get('title')
+        text = request.params.get('text')
+        id = entry.id
+        Entry.edit(title=title, text=text, id=id)
+        entry = Entry.id_lookup(id)
+        resp_title, resp_text = entry.title, entry.markdown
+        if 'HTTP_X_REQUESTED_WITH' not in request.environ:
+            return HTTPFound(request.route_url('permalink',
+                                               id=entry.id, title=entry.title))
+    elif request.method == 'GET':
+        entry = Entry.id_lookup(request.matchdict['id'])
+        resp_title, resp_text = entry.title, entry.text
+    else:
+        return HTTPFound(request.route_url('home'))
+    return {'entry': {'id': id, 'title': resp_title, 'text': resp_text}}
 
 
 @view_config(context=DBAPIError)
 def db_exception(context, request):
-    from pyramid.response import Response
     response = Response(context.message)
     response.status_int = 500
     return response
@@ -183,6 +191,7 @@ def do_login(request):
     if username == settings.get('auth.username', ''):
         hashed = settings.get('auth.password', '')
         return manager.check(hashed, password)
+    return False
 
 
 def init_db():
@@ -197,7 +206,6 @@ def main():
     settings['reload_all'] = debug
     settings['debug_all'] = debug
     settings['auth.username'] = os.environ.get('AUTH_USERNAME', 'admin')
-    settings['auth.password'] = os.environ.get('AUTH_PASSWORD', 'secret')
     manager = BCRYPTPasswordManager()
     settings['auth.password'] = os.environ.get(
         'AUTH_PASSWORD', manager.encode('secret')

@@ -5,14 +5,14 @@
         <form action="{{ request.route_url('edit', id=entry.id, title=entry.title) }}" method="POST" class="edit_entry">
             <div class="field">
                 <label for="title">Title</label>
-                <textarea name="title" id="title" rows="1" cols="30">{{  entry.title  }}</textarea>
+                <input type="text" size="30" name="title" id="title" value="{{  entry.title  }}"/>
             </div>
             <div class="field">
                 <label for="text">Text</label>
                 <textarea name="text" id="text" rows="5" cols="80">{{  entry.text  }}</textarea>
             </div>
             <div class="control_row">
-                <input type="submit" value="Update" name="Update"/>
+                <input type="submit" value="Update" name="Update" id="update"/>
             </div>
         </form>
     </aside>

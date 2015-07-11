@@ -8,6 +8,8 @@
         <![endif]-->
         <link href="/static/style.css" rel="stylesheet" type="text/css">
         <link href='http://fonts.googleapis.com/css?family=Montserrat' rel='stylesheet' type='text/css'>
+        <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+        <script src="/static/main.js"></script>
     </head>
     <body>
         <header>
@@ -20,7 +22,7 @@
                     <li><a href="{{ request.route_url('login') }}">Log In</a></li>
                 {% else %}
                     <li><a href="{{ request.route_url('logout') }}">Log Out</a></li>
-                    <li><a href="{{ request.route_url('add') }}">Add an Entry</a></li>
+                    <li><a id="add-link" href="{{ request.route_url('add') }}">Add an Entry</a></li>
                 {% endif %}
                 </ul>
             </nav>
