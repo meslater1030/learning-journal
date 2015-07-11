@@ -13,6 +13,7 @@ $(document).ready(function(){
         }).done(function(response){
             $("#form-title").val();
             $('#form-text').val();
+            $('#twitter').hide();
             $('.entry').hide();
             $('#edit-form-container').show();
         }).fail(function(){
@@ -35,6 +36,7 @@ $(document).ready(function(){
             $('#entry-title').html(response.entry.title);
             $('#entry-text').html(response.entry.text);
             $('.entry').show();
+            $('#twitter').show();
             $('#edit-form-container').hide();
         }).fail(function(){
             alert("error");
@@ -43,18 +45,15 @@ $(document).ready(function(){
 
     $('#add-link').on('click', function(event){
         event.preventDefault();
-
-        var title = $('#form-title').val();
-        var text = $('#form-text').val();
-
         $.ajax({
             method: "GET",
             url: "/add",
         }).done(function(response){
-            $('#content').hide();
+            $('.entry').hide();
             $('#add-form-container').show();
         }).fail(function(){
             alert("error");
         });
     });
 })
+
